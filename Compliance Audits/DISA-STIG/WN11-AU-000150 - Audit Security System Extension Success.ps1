@@ -15,19 +15,14 @@
     STIG-ID         : WN11-AU-000150
 
 .DESCRIPTION
-    This script sets the following registry value:
+    This script configures the Advanced Audit Policy setting:
 
-        HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit\SecuritySystemExtension = 1 (DWORD)
+        Category:    System
+        Subcategory: Security System Extension
+        Setting:     Success
 
-    This enforces:
-        Advanced Audit Policy setting:
-            Category: System
-            Subcategory: Security System Extension
-            Setting: Success
-
-        This ensures auditing is generated for security system processes and components that
-        extend or modify the system’s authentication or authorization capabilities, satisfying
-        DISA STIG WN11-AU-000150.
+    It uses the auditpol.exe tool to set the subcategory to Success, which aligns with
+    DISA STIG WN11-AU-000150 and how most SCAP/STIG tools validate the setting.
 
 .TESTED ON
     Date(s) Tested  : 1/20/2026
@@ -39,17 +34,26 @@
     Run from an elevated PowerShell session.
 
     Example:
-        PS C:\> .\WN11-AU-000150 - Audit Security System Extension Success.ps1
+        PS C:\> .\WN11-AU-000150 - The system must be configured to audit System - Security System Extension successes.ps1
 #>
 
-$RegPath = 'HKLM:\SOFTWARE\Microsoft\WIndows\CurrentVersion\Policies\System\Audit'
-$RegName = 'SecuritySystemExtension'
-$RegValue = 1   # 1 = Success Auditing
+# -----------------------------
+# Configuration
+# -----------------------------
+$Subcategory = 'Security System Extension'
 
-if (-not (Test-Path -Path $RegPath)){
-    New-Item -Path $RegPath -Force | Out-Null
-}
+# -----------------------------
+# Set audit policy (Success only)
+# -----------------------------
+Write-Host "Configuring Advanced Audit Policy for '$Subcategory' to: Success..."
 
-New-ItemProperty -Path $RegPath -Name $RegName -PropertyType Dword -Value $RegValue -Force | Out-Null
+# Enable Success, disable Failure (STIG requires Success; Success+Failure would also be acceptable)
+& auditpol.exe /set /subcategory:"$Subcategory" /success:enable /failure:disable | Out-Null
 
-Write-Host "STIG WN11-AU-000150 remediated: Security System Extension auditing set to Success (Value=$RegValue)."
+# -----------------------------
+# Optional: Verify current setting
+# -----------------------------
+Write-Host "`nCurrent effective setting for '$Subcategory':"
+& auditpol.exe /get /subcategory:"$Subcategory"
+
+Write-Host "`nSTIG WN11-AU-000150 remediation complete (Security System Extension = Success)."
